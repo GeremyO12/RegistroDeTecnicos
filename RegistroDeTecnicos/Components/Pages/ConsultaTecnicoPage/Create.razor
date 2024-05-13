@@ -1,0 +1,125 @@
+﻿@page "/Create"
+@page "/Create{tecnicoId:int}"
+@inject TecnicoService tecnicoService
+@inject NavigationManager navigationManager
+@inject IJSRuntime ijsRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Registro de Tecnicos</PageTitle>
+<EditForm Model="Tecnico" OnInvalidSubmit="Guardar">
+	<DataAnnotationsValidator />
+	<div class="container">
+		<div class="card shadow-lg">
+			<div class="card-header">
+				<h3>Crear Tecnico</h3>
+			</div>
+			<div class="card-body">
+				<div class="row">
+					<div class="col-xl-12 col-md-8 col-lg-6 col-xl-4">
+						<label for="TecnicoId">Tecnico Id:</label>
+						<div class="id-input">
+                            <InputNumber @bind-Value="Tecnico.TecnicoId" class="form-control" aria-describedby="BotonBuscar" />
+						</div>
+					</div>
+				</div>
+                <div class="mb-3">
+                    <label class="form-label" for="Descripcion">Descripci&oacute;n:</label>
+                    <InputText @bind-Value="Tecnico.Descripcion" class="form-control" />
+                    <ValidationMessage For="@(() => Tecnico.Descripcion)" />
+                </div>
+                @if (Existe)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        Ya existe una tecnico con esa descripción
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="form-label" for="DiasCompromiso">D&iacute;as Compromiso:</label>
+                    <InputNumber @bind-Value="Tecnico.DiasCompromiso" class="form-control" />
+                    <ValidationMessage For="@(() => Tecnico.DiasCompromiso)" />
+                </div>
+                @if (Guardo)
+                {
+                    <p class="text-success">
+                        La prioridad se guardó exitosamente
+                    </p>
+                }
+                @if (Elimino)
+                {
+                    <p class="text-success">
+                        La prioridad se eliminó exitosamente
+                    </p>
+                }
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-primary" @onclick="() => Guardar()">
+                    <span>Crear <i class="bi bi-file-earmark" /></span>
+                </button>
+                <a href="/Details" class="btn btn-secondary">
+                    <span>Volver a Consulta</span> <i class="bi bi-arrow-return-left" />
+                </a>
+            </div>
+
+		</div>
+	</div>
+</EditForm>
+
+@code {
+	[Parameter]
+	public int? tecnicoId { get; set; }
+	public Tecnicos Tecnico { get; set; } = new Tecnicos();
+	public string Mensaje { get; set; } = string.Empty;
+	public bool Existe { get; set; } = false;
+	public bool Guardo { get; set; } = false;
+	public bool Elimino { get; set; } = false;
+	public bool Encontro { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        if (tecnicoId.HasValue)
+        {
+            Tecnico.TecnicoId = tecnicoId.Value;
+            Buscar();
+        }
+    }
+
+    public async Task Buscar()
+    {
+        var encontrado = await tecnicoService.Buscar(Tecnico.TecnicoId);
+        if (encontrado != null)
+            Tecnico = encontrado;
+
+        Encontro = true;
+    }
+
+    public void Guardar()
+    {
+        if (Validar())
+            return;
+
+        var guardo = tecnicoService.Guardar(this.Tecnico);
+        Guardo = true;
+        navigationManager.NavigateTo("Details");
+        Nuevo();
+
+    }
+
+    public void Nuevo()
+    {
+        this.Tecnico = new Tecnicos();
+        Mensaje = string.Empty;
+    }
+
+    public bool Validar()
+    {
+        Existe = (tecnicoService.Listar(pr => pr.Descripcion!.ToLower() == Tecnico.Descripcion!.ToLower() && pr.TecnicoId != Tecnico.TecnicoId).Any());
+        return Existe;
+    }
+
+    public async Task Eliminar()
+    {
+        var eliminado = tecnicoService.Eliminar(Tecnico.TecnicoId);
+        Elimino = true;
+        Nuevo();
+    }
+}
